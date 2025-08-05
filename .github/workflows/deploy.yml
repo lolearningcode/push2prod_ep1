@@ -53,11 +53,6 @@ jobs:
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
 
-      - name: Ensure ECR repo exists
-        run: |
-          aws ecr describe-repositories --repository-names "$ECR_REPO" --region "$AWS_REGION" || \
-          aws ecr create-repository --repository-name "$ECR_REPO" --region "$AWS_REGION"
-
       - name: Push image to ECR
         run: |
           docker push ${{ env.IMAGE_URI }}
@@ -70,6 +65,14 @@ jobs:
       - name: Initialize Terraform
         working-directory: terraform
         run: terraform init
+
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -var="ecr_image_uri=${{ env.IMAGE_URI }}"
 
       - name: Apply Terraform with dynamic image URI
         working-directory: terraform
