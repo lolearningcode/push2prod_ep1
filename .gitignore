@@ -1,0 +1,11 @@
+# .gitignore
+__pycache__/
+*.pyc
+.env
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+.DS_Store
+.idea/
+.vscode/
