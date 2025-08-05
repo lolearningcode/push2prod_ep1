@@ -42,6 +42,16 @@ resource "aws_subnet" "public" {
   }
 }
 
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "us-east-1b"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "my-prod-public-subnet-b"
+  }
+}
+
 # Internet Gateway
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
@@ -70,9 +80,17 @@ resource "aws_route_table_association" "public_assoc" {
   route_table_id = aws_route_table.public.id
 }
 
+resource "aws_route_table_association" "public_assoc_b" {
+  subnet_id      = aws_subnet.public_b.id
+  route_table_id = aws_route_table.public.id
+}
+
 # ECR Repository
 resource "aws_ecr_repository" "app" {
   name = var.ecr_repo_name
+
+  lifecycle { prevent_destroy = true }
+
   image_scanning_configuration {
     scan_on_push = true
   }
@@ -155,7 +173,7 @@ resource "aws_security_group" "ecs" {
 resource "aws_lb" "app" {
   name               = "my-prod-alb"
   load_balancer_type = "application"
-  subnets            = [aws_subnet.public.id]
+  subnets = [aws_subnet.public.id, aws_subnet.public_b.id]
   security_groups    = [aws_security_group.alb.id]
 
   enable_deletion_protection = false
@@ -223,7 +241,7 @@ resource "aws_ecs_service" "app" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = [aws_subnet.public.id]
+    subnets         = [aws_subnet.public.id, aws_subnet.public_b.id]
     assign_public_ip = true
     security_groups = [aws_security_group.ecs.id]
   }
